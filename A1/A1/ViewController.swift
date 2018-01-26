@@ -15,11 +15,16 @@ class ViewController: UIViewController {
     
     @IBAction func calculate(sender: UIButton) {
         
+        let NEWLINE: String = "\n"
+        outputLabel.numberOfLines = 0
         let wordCount = countWords(input: (textField.text))
         let sentenceCount = countSentences(input: (textField.text))
-        //get syllable count
-        outputLabel.text = "Words: " + String(wordCount) +
-        "\nSentences: " + String(sentenceCount)
+        let syllableCount = countSyllables(input: (textField.text))
+        let index = computeIndex(word: wordCount, sent: sentenceCount, syll: syllableCount)
+        outputLabel.text = "Words: " + String(wordCount) + NEWLINE
+        outputLabel.text = outputLabel.text! + "Sentence: " + String(sentenceCount) + NEWLINE
+        outputLabel.text = outputLabel.text! + "Syllables: " + String(syllableCount) + NEWLINE
+        outputLabel.text = outputLabel.text! + "Index: " + String(index)
         
         
     }
@@ -52,8 +57,44 @@ class ViewController: UIViewController {
             i_tmp = i
         }
         
-        textField.text = String(sentCount)
         return sentCount
+        
+    }
+    
+    func countSyllables(input: String) -> Int {
+        
+        var syllCount: Int = 0
+        let delims = ["a", "e", "i", "o", "u", "y"]
+        var i_tmp = input.startIndex
+        for i in input.indices {
+            if (delims.contains(String(input[i]))) {
+                if (!delims.contains(String(input[i_tmp]))) {
+                    syllCount = syllCount + 1
+                }
+            }
+            //if we find a blank and the previous character was an 'e', undo last step
+            if (input[i] == " ") {
+                if (input[i_tmp] == "e") {
+                    syllCount = syllCount - 1
+                }
+            }
+            i_tmp = i
+        }
+        
+        if (syllCount < 0) {
+            return 1;
+        }
+        return syllCount
+        
+    }
+    
+    func computeIndex(word: Int, sent: Int, syll: Int) -> Double {
+        
+        var ret: Double;
+        
+        ret = 206.835 - (84.6 * Double(syll/word)) - (1.015 * Double(word/sent))
+        
+        return ret;
         
     }
     
