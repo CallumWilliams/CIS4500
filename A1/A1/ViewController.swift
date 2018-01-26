@@ -16,7 +16,10 @@ class ViewController: UIViewController {
     @IBAction func calculate(sender: UIButton) {
         
         let wordCount = countWords(input: (textField.text))
-        outputLabel.text = String(wordCount)
+        let sentenceCount = countSentences(input: (textField.text))
+        //get syllable count
+        outputLabel.text = "Words: " + String(wordCount) +
+        "\nSentences: " + String(sentenceCount)
         
         
     }
@@ -32,6 +35,25 @@ class ViewController: UIViewController {
             }
         }
         return wordCount
+        
+    }
+    
+    func countSentences(input: String) -> Int {
+        
+        var sentCount: Int = 0
+        let delims = [".", ":", ";", "!", "?"]
+        var i_tmp = input.startIndex
+        for i in input.indices {
+            if (delims.contains(String(input[i]))) {
+                if (!delims.contains(String(input[i_tmp]))) {
+                    sentCount = sentCount + 1
+                }
+            }
+            i_tmp = i
+        }
+        
+        textField.text = String(sentCount)
+        return sentCount
         
     }
     
