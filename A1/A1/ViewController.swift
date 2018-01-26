@@ -17,15 +17,18 @@ class ViewController: UIViewController {
         
         let NEWLINE: String = "\n"
         outputLabel.numberOfLines = 0
-        let wordCount = countWords(input: (textField.text))
-        let sentenceCount = countSentences(input: (textField.text))
-        let syllableCount = countSyllables(input: (textField.text))
-        let index = computeIndex(word: wordCount, sent: sentenceCount, syll: syllableCount)
-        outputLabel.text = "Words: " + String(wordCount) + NEWLINE
-        outputLabel.text = outputLabel.text! + "Sentence: " + String(sentenceCount) + NEWLINE
-        outputLabel.text = outputLabel.text! + "Syllables: " + String(syllableCount) + NEWLINE
-        outputLabel.text = outputLabel.text! + "Index: " + String(index)
-        
+        if (textField.text != "") {
+            
+            let wordCount = countWords(input: (textField.text))
+            let sentenceCount = countSentences(input: (textField.text))
+            let syllableCount = countSyllables(input: (textField.text))
+            let index = computeIndex(word: wordCount, sent: sentenceCount, syll: syllableCount)
+            outputLabel.text = "Words: " + String(wordCount) + NEWLINE
+            outputLabel.text = outputLabel.text! + "Sentence: " + String(sentenceCount) + NEWLINE
+            outputLabel.text = outputLabel.text! + "Syllables: " + String(syllableCount) + NEWLINE
+            outputLabel.text = outputLabel.text! + "Index: " + String(index)
+            
+        }
         
     }
     
@@ -57,6 +60,9 @@ class ViewController: UIViewController {
             i_tmp = i
         }
         
+        if (sentCount == 0) {
+            return 1
+        }
         return sentCount
         
     }
@@ -64,6 +70,7 @@ class ViewController: UIViewController {
     func countSyllables(input: String) -> Int {
         
         var syllCount: Int = 0
+        let punc = [".", ":", ";", "!", "?"]
         let delims = ["a", "e", "i", "o", "u", "y"]
         var i_tmp = input.startIndex
         for i in input.indices {
@@ -73,7 +80,7 @@ class ViewController: UIViewController {
                 }
             }
             //if we find a blank and the previous character was an 'e', undo last step
-            if (input[i] == " ") {
+            if (input[i] == " " || punc.contains(String(input[i]))) {
                 if (input[i_tmp] == "e") {
                     syllCount = syllCount - 1
                 }
