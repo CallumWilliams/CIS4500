@@ -1,0 +1,24 @@
+10x10
+XXXXXXXXXX
+X........X
+X..V.....X
+X........X
+X........X
+X........X
+X........X
+X.....A..X
+X........X
+XXXXXXXXXX
+12x12
+XXXXXXXXXX  
+X........X  
+X........X  
+XXXXX#XXXX  
+     #      
+     #      
+   XX#XXXXXX
+   X.A..X..X
+   X.......X
+   XXXX..XXX
+      X.X   
+       X   
