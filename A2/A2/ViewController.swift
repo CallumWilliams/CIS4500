@@ -8,6 +8,7 @@
 
 import UIKit
 
+var r: [Room] = []
 var pos = Room()
 var inv = Inventory()
 
@@ -45,6 +46,7 @@ class Decision {
     var decDestination: String
     var decDescription: String
     var auto: Bool//true means it's an item pickup, false means it regular navigation
+    var failMessage = ""
     
     init(req: String, dest: String, desc: String, a: Bool) {
         
@@ -52,6 +54,16 @@ class Decision {
         self.decDestination = dest
         self.decDescription = desc
         self.auto = a
+        
+    }
+    
+    init(req: String, dest: String, desc: String, a: Bool, fail: String) {
+        
+        self.decRequirement = req
+        self.decDestination = dest
+        self.decDescription = desc
+        self.auto = a
+        self.failMessage = fail
         
     }
     
@@ -66,29 +78,16 @@ class Room {
     var roomID: String
     var roomDescription: String
     var conditions: [Decision] = []
-    var endRoom: Bool
+    var roomItems: [String] = []
+    var invString = ""
+    var endRoom = false
     
     init() {
         self.roomID = ""
         self.roomDescription = ""
-        endRoom = false
     }
     
     init(input: String) {
-        
-        endRoom = false//until we find a '-end'
-        
-        //check if this is an end cell
-        if (input.contains("-end")) {
-            endRoom = true
-        }
-        
-        if (input.contains("-inventory")) {
-            
-            var invToken = input.components(separatedBy: "-inventory")
-            
-            
-        }
         
         //parse initial room data
         var token = input.components(separatedBy: " ")
@@ -97,60 +96,175 @@ class Room {
         let quoteToken = input.components(separatedBy: "\"")
         self.roomDescription = quoteToken[1]
         
-        //get destination options
-        var optCount = 1
-        var numberToken = input.components(separatedBy: String(optCount) + ".")
-        var tokCount = numberToken.count
-        while (tokCount > 1) {
-            
-            //parse out arguments
-            var numberQuotes = numberToken[1].components(separatedBy: "\"")
-            let d = numberQuotes[1]
-            
-            optCount = optCount + 1
-            var o = numberQuotes[2].components(separatedBy: ">")
-            conditions.append(Decision(req: "", dest: o[0], desc: d, a: false))
-            numberToken = input.components(separatedBy: String(optCount) + ".")
-            tokCount = numberToken.count
-            
+        var inputTmp = input.replacingOccurrences(of: self.roomID, with: "")
+        inputTmp = inputTmp.replacingOccurrences(of: self.roomDescription, with: "")
+        //shave off front content
+        for _ in 0...2 {
+            inputTmp.removeFirst()
         }
         
-        //get conditionals
-        var condToken = input.components(separatedBy: "-if")
-        if (condToken.count > 1) {
-            for i in 1..<condToken.count {
-                var ifQuotes = condToken[i].components(separatedBy: "\"")
-                //clean empty strings
+        
+        //check if this is an end cell
+        if (inputTmp.contains("-end")) {
+            endRoom = true
+            inputTmp = inputTmp.replacingOccurrences(of: "-end", with: "")
+        }
+        
+        while (inputTmp != "") {
+            
+            if (inputTmp.starts(with: "-if")) {
+                for _ in 0...3 {//remove -if
+                    inputTmp.removeFirst()
+                }
+                let quoteToken = inputTmp.components(separatedBy: "\"")
                 var cond = ""
                 var out = ""
                 var desc = ""
                 var parseState = 0
-                for k in 0..<ifQuotes.count {
+                for q in quoteToken {
                     
-                    if (ifQuotes[k] != " ") {//use this
-                        
-                        if (parseState == 0) {//get condition
-                            cond = ifQuotes[k]
+                    if (q != "" && q != " ") {
+                        if (parseState == 0) {
+                            cond = q
+                            for _ in 0..<cond.count+2 {//remove from buffer
+                                inputTmp.removeFirst()
+                            }
                             parseState = 1
-                        } else if (parseState == 1) {//get success
-                            out = ifQuotes[k]
+                        } else if (parseState == 1) {
+                            out = q
+                            for _ in 0..<out.count+2 {//remove from buffer
+                                inputTmp.removeFirst()
+                            }
                             parseState = 2
-                        } else if (parseState == 2) {//get output
-                            desc = ifQuotes[k]
-                            parseState = 3
-                        } else if (parseState == 3) {//build condition
-                            conditions.append(Decision(req: cond, dest: out, desc: desc, a: true))
-                            parseState = 4
-                        } else {
-                            //otherwise ignore
+                        } else if (parseState == 2) {
+                            desc = q
+                            print(cond + " " + out + " " + desc)
+                            for _ in 0..<desc.count+2 {//remove from buffer
+                                inputTmp.removeFirst()
+                            }
+                            break
+                        }
+                    } else if (q == " "){//remove it
+                        inputTmp.removeFirst()
+                    }
+                    
+                }
+                
+            } else if (inputTmp.starts(with: "-inventory")){
+                for _ in 0...10 {//remove -inventory
+                    inputTmp.removeFirst()
+                }
+                let itemToken = inputTmp.components(separatedBy: "\"")
+                
+                var parseState = 0
+                for i in itemToken {
+                    
+                    if (i != "" && i != " ") {
+                        if (parseState == 0) {
+                            self.invString = i
+                            for _ in 0..<self.invString.count+2 {//remove item message
+                                inputTmp.removeFirst()
+                            }
+                            parseState = 1
+                        } else if (parseState == 1) {
+                            self.roomItems.append(i)
+                            for _ in 0..<i.count+2 {//remove item message
+                                inputTmp.removeFirst()
+                            }
+                            print("Added item " + i + " to room + " + self.roomID)
+                            parseState = 2
+                        } else if (parseState == 2) {
+                            
+                            if (i == ", ") {
+                                for _ in 0...1 {
+                                    inputTmp.removeFirst()
+                                }
+                                parseState = 1
+                            } else {
+                                parseState = 3
+                            }
+                            
+                        } else {//no more items
+                            break
+                        }
+                    } else if (i == " ") {//remove
+                        inputTmp.removeFirst()
+                    }
+                    
+                }
+            } else {//read as regular directional input
+                while (inputTmp != "") {
+                    
+                    var parseState = 0
+                    //0 = ignore (index)
+                    //1 = read description
+                    //2 = destination
+                    var cond = ""
+                    var out = ""
+                    var desc = ""
+                    let quotes = inputTmp.components(separatedBy: "\"")
+                    for q in quotes {
+                        
+                        if (q != "" && q != " ") {
+                            if (parseState == 0) {
+                                //ignore
+                                for _ in 0..<2 {//remove from buffer
+                                    inputTmp.removeFirst()
+                                }
+                                parseState = 1
+                            } else if (parseState == 1) {
+                                desc = q
+                                for _ in 0..<desc.count+2 {//remove from buffer
+                                    inputTmp.removeFirst()
+                                }
+                                parseState = 2
+                            } else if (parseState == 2) {
+                                if (q.contains("-if")) {
+                                    print("test" + q)
+                                    //parse as condition
+                                    parseState = 3
+                                } else {
+                                    out = q
+                                    for _ in 0..<out.count+1 {//remove from buffer
+                                        inputTmp.removeFirst()
+                                    }
+                                    out = out.components(separatedBy: ">")[0] + ">"
+                                    if (out.starts(with: " go ")) {
+                                        for _ in 0...3 {
+                                            out.removeFirst()
+                                        }
+                                    }
+                                    if (cond == "") {
+                                        self.conditions.append(Decision(req: cond, dest: out, desc: desc, a: false))
+                                        print("BUILD PATH - (" + cond + ") " + out + " " + desc)
+                                        parseState = 1
+                                    } else {
+                                        parseState = 4
+                                    }
+                                }
+                            } else if (parseState == 3) {//parse as condition
+                                cond = q
+                                parseState = 2
+                            } else if (parseState == 4) {
+                                self.conditions.append(Decision(req: cond, dest: out, desc: desc, a: false, fail: q))
+                                for _ in 0..<q.count+2 {
+                                    inputTmp.removeFirst()
+                                }
+                                print("BUILD PATH - (" + cond + ") " + out + " " + desc + "| Fail = " + q)
+                                cond = ""
+                                parseState = 0
+                            }
+                        } else if (q == " ") {//remove
+                            inputTmp.removeFirst()
                         }
                         
-                    }//otherwise skip
+                    }
                     
                 }
             }
             
         }
+        print(self.roomID + " finished")
         
     }
     
@@ -191,9 +305,66 @@ class ViewController: UIViewController {
     @IBOutlet weak var InventoryBox: UILabel!
     @IBOutlet weak var Input: UITextField!
     
+    func joinRoom(r: Room) {
+        
+        pos = r
+        DisplayLabel.text! = DisplayLabel.text! + "\n" + r.roomInfoOutput() + "\n"
+        for d in r.conditions {
+            if (d.auto) {
+                //automatic condition - call it
+            }
+        }
+        OptionBox.text = pos.getDecisionsList(auto: false)
+        Input.text = ""
+        
+    }
+    
+    func findRoom(id: String) -> Room {
+        
+        var i = id.replacingOccurrences(of: " ", with: "")
+        for room in r {
+            
+            print("|" + i + "|" + " vs " + "|" + room.roomID + "|")
+            if (id.contains(room.roomID)) {
+                return room
+            }
+            
+        }
+        
+        return Room() //empty room
+        
+    }
+    
     @IBAction func PerformMove(_ sender: Any) {
         
         //all remaining game logic
+        var user_input = Input.text!
+        
+        var foundRoom = false
+        if (user_input != "") {
+            
+            for room in pos.conditions {
+                print(room.decDestination)
+                user_input = "<" + user_input + ">"
+                if (room.decDestination.contains(user_input)) {
+                    print("Switching to " + user_input)
+                    let output = findRoom(id: room.decDestination)
+                    if (output.roomID == "") {//error
+                        print("ERROR FINDING ROOM " + room.decDestination)
+                    } else {
+                        joinRoom(r: output)
+                    }
+                    foundRoom = true
+                    break
+                }
+            }
+            
+            if (!foundRoom) {
+                print("Error finding room")
+            }
+            print("end function")
+            
+        }
         
     }
     
@@ -202,8 +373,6 @@ class ViewController: UIViewController {
         DisplayLabel.numberOfLines = 0
         OptionBox.numberOfLines = 0
         InventoryBox.numberOfLines = 0
-        
-        var r: [Room] = []
         
         if let file = Bundle.main.path(forResource: "input", ofType: "txt") {
             do {
@@ -230,10 +399,8 @@ class ViewController: UIViewController {
         }
         
         //start game
-        pos = r[0];
-        DisplayLabel.text = pos.roomInfoOutput() + "\n"
-        OptionBox.text = pos.getDecisionsList(auto: false)
-        DisplayLabel.text! = DisplayLabel.text! + pos.getDecisionsList(auto: true)
+        pos = r[0]
+        joinRoom(r: pos)
         
     }
 
