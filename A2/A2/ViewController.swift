@@ -11,6 +11,7 @@ import UIKit
 var r: [Room] = []
 var pos = Room()
 var inv = Inventory()
+var optionSize = 1
 
 class Inventory {
     
@@ -24,6 +25,17 @@ class Inventory {
         
         if (inv.contains(i)) {
             return true
+        }
+        return false
+        
+    }
+    
+    func searchFor(item: String) -> Bool {
+        
+        for i in inv {
+            if (i.contains(item)) {
+                return true
+            }
         }
         return false
         
@@ -264,7 +276,19 @@ class Room {
             }
             
         }
-        print(self.roomID + " finished")
+        
+    }
+    
+    func findConditionIndex(id: String) -> Int {
+        
+        var ret = 0
+        for c in self.conditions {
+            
+            
+            
+        }
+        
+        return -1
         
     }
     
@@ -311,7 +335,13 @@ class ViewController: UIViewController {
         DisplayLabel.text! = DisplayLabel.text! + "\n" + r.roomInfoOutput() + "\n"
         for d in r.conditions {
             if (d.auto) {
-                //automatic condition - call it
+                DisplayLabel.text! = DisplayLabel.text! + d.getDecisionString() + "\n"
+            }
+        }
+        if (r.roomItems.count > 0) {
+            DisplayLabel.text! = DisplayLabel.text! + r.invString + "\n"
+            for i in r.roomItems {
+                InventoryBox.text! = InventoryBox.text! + i + "\n"
             }
         }
         OptionBox.text = pos.getDecisionsList(auto: false)
@@ -319,48 +349,25 @@ class ViewController: UIViewController {
         
     }
     
-    func findRoom(id: String) -> Room {
+    func findRoom(id: Int) -> Room {
         
-        var i = id.replacingOccurrences(of: " ", with: "")
-        for room in r {
-            
-            print("|" + i + "|" + " vs " + "|" + room.roomID + "|")
-            if (id.contains(room.roomID)) {
-                return room
-            }
-            
-        }
-        
-        return Room() //empty room
+        return r[id]
         
     }
     
     @IBAction func PerformMove(_ sender: Any) {
         
         //all remaining game logic
-        var user_input = Input.text!
+        var user_input = Int(Input.text!)!
         
         var foundRoom = false
-        if (user_input != "") {
+        if (user_input > 0 && user_input <= optionSize) {
             
-            for room in pos.conditions {
-                print(room.decDestination)
-                user_input = "<" + user_input + ">"
-                if (room.decDestination.contains(user_input)) {
-                    print("Switching to " + user_input)
-                    let output = findRoom(id: room.decDestination)
-                    if (output.roomID == "") {//error
-                        print("ERROR FINDING ROOM " + room.decDestination)
-                    } else {
-                        joinRoom(r: output)
-                    }
-                    foundRoom = true
-                    break
-                }
-            }
+            var req_room = findRoom(id: user_input)
+            
             
             if (!foundRoom) {
-                print("Error finding room")
+                print("Error finding room - not valid input")
             }
             print("end function")
             
@@ -399,8 +406,9 @@ class ViewController: UIViewController {
         }
         
         //start game
-        pos = r[0]
+        pos = r[1]
         joinRoom(r: pos)
+        optionSize = pos.conditions.count
         
     }
 
