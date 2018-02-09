@@ -23,7 +23,7 @@ class Inventory {
     
     func hasItem(i: String) -> Bool {
         
-        if (inv.contains(i)) {
+        if (self.inv.contains(i)) {
             return true
         }
         return false
@@ -32,7 +32,8 @@ class Inventory {
     
     func searchFor(item: String) -> Bool {
         
-        for i in inv {
+        for i in self.inv {
+            print("|" +  i + "| vs |" + item + "|")
             if (i.contains(item)) {
                 return true
             }
@@ -151,6 +152,7 @@ class Room {
                         } else if (parseState == 2) {
                             desc = q
                             print(cond + " " + out + " " + desc)
+                            self.conditions.append(Decision(req: cond, dest: out, desc: desc, a: true))
                             for _ in 0..<desc.count+2 {//remove from buffer
                                 inputTmp.removeFirst()
                             }
@@ -279,19 +281,6 @@ class Room {
         
     }
     
-    func findConditionIndex(id: String) -> Int {
-        
-        var ret = 0
-        for c in self.conditions {
-            
-            
-            
-        }
-        
-        return -1
-        
-    }
-    
     func roomInfoOutput() -> String {
         return self.roomDescription
     }
@@ -329,49 +318,92 @@ class ViewController: UIViewController {
     @IBOutlet weak var InventoryBox: UILabel!
     @IBOutlet weak var Input: UITextField!
     
+    func updateInventoryDisplay() {
+        
+        InventoryBox.text = ""
+        for i in inv.inv {
+            InventoryBox.text! = InventoryBox.text! + i + "\n"
+        }
+        
+    }
+    
+    func searchForRoom(id: String) -> Int {
+        
+        var ind = 0
+        for room in r {
+            
+            if (id == room.roomID) {
+                print("Switching to the " + String(ind) + "th room")
+                return ind
+            }
+            ind = ind + 1
+            
+        }
+        
+        return -1
+        
+    }
+    
     func joinRoom(r: Room) {
         
         pos = r
         DisplayLabel.text! = DisplayLabel.text! + "\n" + r.roomInfoOutput() + "\n"
         for d in r.conditions {
-            if (d.auto) {
+            if (d.auto && inv.hasItem(i: d.decRequirement)) {
                 DisplayLabel.text! = DisplayLabel.text! + d.getDecisionString() + "\n"
+                inv.removeItem(i: d.decRequirement)
+                inv.addItem(i: d.decDestination)
             }
         }
         if (r.roomItems.count > 0) {
             DisplayLabel.text! = DisplayLabel.text! + r.invString + "\n"
             for i in r.roomItems {
                 InventoryBox.text! = InventoryBox.text! + i + "\n"
+                inv.addItem(i: i)
             }
         }
+        updateInventoryDisplay()
         OptionBox.text = pos.getDecisionsList(auto: false)
-        Input.text = ""
-        
-    }
-    
-    func findRoom(id: Int) -> Room {
-        
-        return r[id]
         
     }
     
     @IBAction func PerformMove(_ sender: Any) {
         
-        //all remaining game logic
-        var user_input = Int(Input.text!)!
-        
+        //all game logic
+        var user_input = Input.text!
+        user_input = "<" + user_input + ">"
         var foundRoom = false
-        if (user_input > 0 && user_input <= optionSize) {
+        
+        for p in pos.conditions {
             
-            var req_room = findRoom(id: user_input)
-            
-            
-            if (!foundRoom) {
-                print("Error finding room - not valid input")
+            if (!p.auto && p.decRequirement == "") {//ignore requirements
+                
+                if (p.decDestination.contains(user_input)) {
+                    foundRoom = true
+                    let i = searchForRoom(id: user_input)
+                    joinRoom(r: r[i])
+                    break
+                }
+                
+            } else if (!p.auto && p.decRequirement != "") {//check if required item is in inventory
+                if (inv.searchFor(item: p.decRequirement)) {
+                    foundRoom = true
+                    let i = searchForRoom(id: user_input)
+                    joinRoom(r: r[i])
+                    break
+                } else {
+                    DisplayLabel.text! = DisplayLabel.text! + p.failMessage + "\n"
+                    foundRoom = true
+                    break
+                }
             }
-            print("end function")
             
         }
+        
+        if (!foundRoom) {
+            print("Error finding room " + user_input)
+        }
+        Input.text = ""
         
     }
     
@@ -406,8 +438,9 @@ class ViewController: UIViewController {
         }
         
         //start game
-        pos = r[1]
+        pos = r[0]
         joinRoom(r: pos)
+        updateInventoryDisplay()
         optionSize = pos.conditions.count
         
     }
